@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard: URL Safety Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 1.5rem;
+        }
+
+        input[type="url"] {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            outline: none;
+        }
+
+        input[type="url"]:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: none;
+            text-align: left;
+        }
+
+        .safety-rating {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .strongly-safe {
+            background-color: #1e7e34;
+            color: white;
+        }
+        
+        .safe {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .uncertain {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .unsecure {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .very-unsecure {
+            background-color: #721c24;
+            color: white;
+        }
+
+        .legitimate {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .phishing {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .spinner {
+            display: none;
+            margin: 1rem auto;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .model-details {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .model-details ul {
+            list-style-type: none;
+            margin-top: 0.5rem;
+            padding: 0;
+        }
+
+        .model-details li {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            background-color: #f8f9fa;
+        }
+
+        .model-details li.best-model {
+            font-weight: bold;
+            background-color: #e8f4fd;
+            border-left: 3px solid #3498db;
+        }
+
+        .model-details .prediction-legitimate {
+            color: #28a745;
+        }
+
+        .model-details .prediction-phishing {
+            color: #dc3545;
+        }
+
+        .confidence-meter {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .confidence-level {
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PhishGuard: URL Safety Scanner</h1>
+        <div class="input-group">
+            <input 
+                type="url" 
+                placeholder="Enter URL to check (e.g., https://example.com)"
+                required
+            >
+            <button type="submit">Check URL</button>
+        </div>
+        
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="result-container" id="resultContainer">
+            <h2 id="resultTitle"></h2>
+            <p id="resultDescription"></p>
+            <div class="confidence-meter">
+                <div class="confidence-level" id="confidenceLevel"></div>
+            </div>
+            <p id="confidenceText"></p>
+            <div class="model-details" id="modelDetails"></div>
+        </div>
+    </div>
+    <script>
+        document.querySelector('button').addEventListener('click', async () => {
+            const urlInput = document.querySelector('input[type="url"]');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL to check');
+                return;
+            }
+            
+            // Show loading spinner
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+            
+            // Hide previous results
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.style.display = 'none';
+            
+            try {
+                const response = await fetch('http://localhost:8000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url }),
+                });
+                
+                const result = await response.json();
+                console.log(result);
+                
+                // Hide spinner
+                spinner.style.display = 'none';
+                
+                // Display results
+                const resultTitle = document.getElementById('resultTitle');
+                const resultDescription = document.getElementById('resultDescription');
+                const confidenceLevel = document.getElementById('confidenceLevel');
+                const confidenceText = document.getElementById('confidenceText');
+                const modelDetails = document.getElementById('modelDetails');
+                
+                // Calculate weighted average confidence
+                const models = [
+                    { name: 'Random Forest', key: 'random_forest' },
+                    { name: 'XGBoost', key: 'xgboost' },
+                    { name: 'SVM', key: 'svm' },
+                    { name: 'Logistic Regression', key: 'logistic_regression' }
+                ];
+                
+                let totalWeightedConfidence = 0;
+                
+                models.forEach(model => {
+                    const prediction = result.model_predictions[model.key];
+                    // If phishing, make confidence negative
+                    const signedConfidence = prediction.prediction === 'legitimate' 
+                        ? prediction.confidence 
+                        : -prediction.confidence;
+                    totalWeightedConfidence += signedConfidence;
+                });
+                
+                // Calculate average (-1 to 1 scale)
+                const avgConfidence = totalWeightedConfidence / models.length;
+                
+                // Determine safety rating
+                let safetyRating;
+                let safetyClass;
+                let safetyColor;
+                
+                if (avgConfidence > 0.6) {
+                    safetyRating = 'Strongly safe';
+                    safetyClass = 'strongly-safe';
+                    safetyColor = '#1e7e34'; // Dark green
+                } else if (avgConfidence > 0.2) {
+                    safetyRating = 'Secure';
+                    safetyClass = 'safe';
+                    safetyColor = '#28a745'; // Green
+                } else if (avgConfidence >= -0.2) {
+                    safetyRating = 'Uncertain';
+                    safetyClass = 'uncertain';
+                    safetyColor = '#ffc107'; // Yellow
+                } else if (avgConfidence >= -0.6) {
+                    safetyRating = 'Insecure';
+                    safetyClass = 'unsecure';
+                    safetyColor = '#dc3545'; // Red
+                } else {
+                    safetyRating = 'Highly Insecure';
+                    safetyClass = 'very-unsecure';
+                    safetyColor = '#721c24'; // Dark red
+                }
+                
+                // Set class based on safety rating
+                resultContainer.className = 'result-container';
+                resultContainer.style.backgroundColor = avgConfidence > 0 ? '#d4edda' : '#f8d7da';
+                resultContainer.style.borderColor = avgConfidence > 0 ? '#c3e6cb' : '#f5c6cb';
+                resultContainer.style.color = avgConfidence > 0 ? '#155724' : '#721c24';
+                
+                // Set result title
+                resultTitle.textContent = avgConfidence > 0 
+                    ? '✅ URL Analysis Result' 
+                    : '⚠️ URL Analysis Result';
+                
+                // Set description
+                resultDescription.innerHTML = `${url} has a consensus safety rating of: <span class="safety-rating ${safetyClass}">${safetyRating}</span>`;
+                
+                // Set confidence meter (convert from -1...1 to 0...100)
+                const confidencePercent = ((avgConfidence + 1) / 2) * 100;
+                confidenceLevel.style.width = `${confidencePercent}%`;
+                confidenceLevel.style.backgroundColor = safetyColor;
+                
+                // Set confidence text
+                confidenceText.textContent = `Consensus confidence: ${Math.abs(avgConfidence * 100).toFixed(1)}%`;
+                
+                // Set model details
+                modelDetails.innerHTML = `
+                    <p>Consensus rating: <strong>${safetyRating}</strong> (${(avgConfidence * 100).toFixed(1)}%)</p>
+                    <p>Individual model predictions:</p>
+                    <ul>
+                    </ul>
+                `;
+                
+                const modelsList = modelDetails.querySelector('ul');
+                
+                // Add each model prediction with proper styling
+                models.forEach(model => {
+                    const prediction = result.model_predictions[model.key];
+                    const confidence = (prediction.confidence * 100).toFixed(1);
+                    const isBestModel = result.best_model === model.name;
+                    
+                    const li = document.createElement('li');
+                    if (isBestModel) {
+                        li.classList.add('best-model');
+                    }
+                    
+                    li.innerHTML = `
+                        <span>${model.name}</span>
+                        <span class="prediction-${prediction.prediction}">
+                            ${prediction.prediction} (${confidence}%)
+                        </span>
+                    `;
+                    
+                    modelsList.appendChild(li);
+                });
+                
+                // Show result container
+                resultContainer.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while checking the URL');
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,20 @@
+{
+  "name": "phishguard",
+  "version": "1.0.0",
+  "description": "A simple web application to detect phishing URLs",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server frontend -p 3000 -c-1",
+    "dev": "http-server frontend -p 3000 -c-1 --cors"
+  },
+  "keywords": [
+    "phishing",
+    "security",
+    "url-scanner"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
