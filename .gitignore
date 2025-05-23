@@ -1,2 +1,3 @@
 node_modules/
 /backend/venv/
+/backend/models/random_forest.joblib
