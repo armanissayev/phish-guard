@@ -100,13 +100,13 @@ def predict_url(url: str) -> Dict[str, Any]:
     """
     # Load models
     try:
-        rf_model = joblib.load('backend/models/random_forest_model.pkl')
+        # rf_model = joblib.load('backend/models/random_forest_model.pkl')
         xgb_model = joblib.load('backend/models/xgboost_model.pkl')
         svm_model = joblib.load('backend/models/svm_model.pkl')
         lr_model = joblib.load('backend/models/logistic_regression_model.pkl')
     except:
         # Try alternative path
-        rf_model = joblib.load('models/random_forest_model.pkl')
+        # rf_model = joblib.load('models/random_forest_model.pkl')
         xgb_model = joblib.load('models/xgboost_model.pkl')
         svm_model = joblib.load('models/svm_model.pkl')
         lr_model = joblib.load('models/logistic_regression_model.pkl')
@@ -119,26 +119,26 @@ def predict_url(url: str) -> Dict[str, Any]:
     X_pred = X.drop(['raw_url', 'raw_domain', 'tld'], axis=1, errors='ignore')
     
     # Make predictions with each model
-    rf_pred_proba = rf_model.predict_proba(X_pred)[0]
+    # rf_pred_proba = rf_model.predict_proba(X_pred)[0]
     xgb_pred_proba = xgb_model.predict_proba(X_pred)[0]
     svm_pred_proba = svm_model.predict_proba(X_pred)[0]
     lr_pred_proba = lr_model.predict_proba(X_pred)[0]
     
     # Get prediction labels (0 = phishing, 1 = legitimate)
-    rf_pred = rf_model.predict(X_pred)[0]
+    # rf_pred = rf_model.predict(X_pred)[0]
     xgb_pred = xgb_model.predict(X_pred)[0]
     svm_pred = svm_model.predict(X_pred)[0]
     lr_pred = lr_model.predict(X_pred)[0]
     
     # Calculate confidence scores (probability of the predicted class)
-    rf_confidence = rf_pred_proba[1] if rf_pred == 1 else rf_pred_proba[0]
+    # rf_confidence = rf_pred_proba[1] if rf_pred == 1 else rf_pred_proba[0]
     xgb_confidence = xgb_pred_proba[1] if xgb_pred == 1 else xgb_pred_proba[0]
     svm_confidence = svm_pred_proba[1] if svm_pred == 1 else svm_pred_proba[0]
     lr_confidence = lr_pred_proba[1] if lr_pred == 1 else lr_pred_proba[0]
     
     # Determine the most confident prediction
     confidences = [
-        ("Random Forest", rf_confidence, rf_pred),
+        # ("Random Forest", rf_confidence, rf_pred),
         ("XGBoost", xgb_confidence, xgb_pred),
         ("SVM", svm_confidence, svm_pred),
         ("Logistic Regression", lr_confidence, lr_pred)
@@ -156,7 +156,7 @@ def predict_url(url: str) -> Dict[str, Any]:
         "confidence": round(float(best_confidence), 4),
         "best_model": best_model,
         "model_predictions": {
-            "random_forest": {"prediction": "legitimate" if rf_pred == 1 else "phishing", "confidence": round(float(rf_confidence), 4)},
+            # "random_forest": {"prediction": "legitimate" if rf_pred == 1 else "phishing", "confidence": round(float(rf_confidence), 4)},
             "xgboost": {"prediction": "legitimate" if xgb_pred == 1 else "phishing", "confidence": round(float(xgb_confidence), 4)},
             "svm": {"prediction": "legitimate" if svm_pred == 1 else "phishing", "confidence": round(float(svm_confidence), 4)},
             "logistic_regression": {"prediction": "legitimate" if lr_pred == 1 else "phishing", "confidence": round(float(lr_confidence), 4)}
